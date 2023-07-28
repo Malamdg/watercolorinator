@@ -1,21 +1,21 @@
 import png
-
-
+from Classes.Color import RGBAColor
 def extractColors(pixel_map):
     pixels = []
     for row in pixel_map:
         for pixel in row:
             if not(pixel in pixels):
                 pixels.append(pixel)
-
+    pixels.sort()
     return pixels
 
 
 def createPixelList(rgba_values):
     pixels = []
+    rgba_values_list = rgba_values.tolist()
     for i in range(0, len(rgba_values), 4):
-        pixel = rgba_values.tolist()[i:i+4]
-        pixels.append(tuple(pixel))
+        pixel = RGBAColor(rgba_values_list[i], rgba_values_list[i+1], rgba_values_list[i+2], rgba_values_list[i+3])
+        pixels.append(pixel)
     return pixels
 
 
@@ -57,8 +57,8 @@ class ImageHandler:
     def __init__(self):
         self.size = ()
         self.pixel_map = []  # pixel list, list
-        self.colors = []  # RGBA tuples : (R, G, B, A)
-        self.layers = []  # RGBA tuple index => coordinates tuple list [(x, y), ...]
+        self.colors = []  # RGBAColor
+        self.layers = []  # RGBAColor indexes => Coordinates list [(x, y), ...]
 
     def handle(self, image):
         reader = png.Reader(file=image)
