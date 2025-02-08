@@ -1,72 +1,67 @@
+import time
 import png
-from Classes.Color import RGBAColor
-def extractColors(pixel_map):
-    pixels = []
-    for row in pixel_map:
-        for pixel in row:
-            if not(pixel in pixels):
-                pixels.append(pixel)
-    pixels.sort()
-    return pixels
-
-
-def createPixelList(rgba_values):
-    pixels = []
-    rgba_values_list = rgba_values.tolist()
-    for i in range(0, len(rgba_values), 4):
-        pixel = RGBAColor(rgba_values_list[i], rgba_values_list[i+1], rgba_values_list[i+2], rgba_values_list[i+3])
-        pixels.append(pixel)
-    return pixels
-
-
-def convertListToMap(pixel_list, width, height):
-    pixel_map = []
-    for i in range(height):
-        row_i = pixel_list[i*width: i*width + width]
-        pixel_map.append(row_i)
-    return pixel_map
-
-
-def buildPixelMap(rgba_values, width, height):
-    pixel_list = createPixelList(rgba_values)
-    return convertListToMap(pixel_list, width, height)
-
-
-def getAllOccurrences(color, pixel_map):
-    occurrences = []
-    height = len(pixel_map)
-    width = len(pixel_map[height - 1])
-    for i in range(height):
-        for j in range(width):
-            pixel = pixel_map[i][j]
-            if pixel == color:
-                occurrences.append((i, j))
-    return occurrences
-
-
-def determineColorLayers(pixel_map, colors):
-    layers = []
-    for i in range(len(colors)):
-        color = colors[i]
-        layer = getAllOccurrences(color, pixel_map)
-        layers.append(layer)
-    return layers
+import numpy as np
 
 
 class ImageHandler:
-    def __init__(self):
-        self.size = ()
-        self.pixel_map = []  # pixel list, list
-        self.colors = []  # RGBAColor
-        self.layers = []  # RGBAColor indexes => Coordinates list [(x, y), ...]
+    def __init__(self, with_benchmarking=False):
+        self.benchmark = with_benchmarking
+        self.color_map = dict()  # maps a color (rgba) to a list of coordinates
+        self.colors = []  # lists the colors of the image
+        self.pixels = []  # pixel matrix of the image
 
-    def handle(self, image):
-        reader = png.Reader(file=image)
-        width, height, rgba_values, metadata = reader.read_flat()
-        image.close()
+    def handle(self, fp):
+        start_time = 0
 
-        self.size = (width, height)
-        self.pixel_map = buildPixelMap(rgba_values, int(width), int(height))
-        self.colors = extractColors(self.pixel_map)
-        self.layers = determineColorLayers(self.pixel_map, self.colors)
-        return self
+        self.benchmark and print(f"Start Handling image".center(80, "-"))
+
+        if self.benchmark:
+            start_time = time.time()
+
+        self.read_img(fp)
+        self.benchmark and print(f'Image read in {time.time() - start_time}s')
+
+        if self.benchmark:
+            start_time = time.time()
+
+        self.build_map()
+        self.benchmark and print(f"Color map built in {time.time() - start_time}s")
+
+        if self.benchmark:
+            start_time = time.time()
+
+        self.reduce_color_count()
+        self.benchmark and print(f"Colors reduced in {time.time() - start_time}s")
+
+    def read_img(self, fp):
+        """
+        Read an image and build the corresponding attributes.
+
+        :param fp:
+        :return:
+        """
+        image = open(fp, 'rb') # open file read + binary mode
+        reader = png.Reader(file=image) # load image file content in the reader object
+        width, height, rgba_values, metadata = reader.read_flat() # get treatment useful values from the reader
+        image.close() # close the file
+
+
+        rgba_list = rgba_values.tolist() # flat RGBA values are disposed in a list
+        color_count = int(len(rgba_list) / 4) # color count is the number of items / 4 (R, B, G, A = 4 values)
+
+        # Convert the rgba list to a RGBAColor list
+        color_list = [
+            np.array([rgba_list[4 * i], rgba_list[4 * i + 1], rgba_list[4 * i + 2], rgba_list[4 * i + 3]]) for i in
+            range(color_count)
+        ]
+
+        # store the colors from the image to a list with only unique values
+
+        self.pixels = [color_list[i * width: (i + 1) * width] for i in range(height)] # convert the color list to a matrix in order to display an image
+
+
+    def build_map(self):
+        pass
+
+    def reduce_color_count(self):
+        pass
