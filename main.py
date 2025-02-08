@@ -1,11 +1,12 @@
 from ImageTreatment.image_handler import ImageHandler
+from color_viewer import visualize_colors
 
 
 def main():
     handler = ImageHandler(with_benchmarking=True)
     handler.handle('Images/test.png')
 
-    print(f"COLOR COUNT: {len(handler.colors)}")
+    visualize_colors(handler.colors)
 
 
 if __name__ == '__main__':

@@ -1,67 +1,65 @@
 import time
-import png
 import numpy as np
+import imageio.v3 as iio
+import psutil
+from logger import Logger  # Import our custom logger
 
 
 class ImageHandler:
-    def __init__(self, with_benchmarking=False):
+    def __init__(self, with_benchmarking: bool = False):
+        """Initialize the ImageHandler with structured logging and benchmarking."""
         self.benchmark = with_benchmarking
-        self.color_map = dict()  # maps a color (rgba) to a list of coordinates
-        self.colors = []  # lists the colors of the image
-        self.pixels = []  # pixel matrix of the image
+        self.pixels = None
+        self.colors = None
+        self.logger = Logger.get_logger(self.__class__.__name__)  # Dedicated logger
 
-    def handle(self, fp):
-        start_time = 0
+    def handle(self, file_path: str):
+        """Main processing function: load, analyze, and monitor image data."""
+        self.logger.info(f"Processing image: {file_path}")
 
-        self.benchmark and print(f"Start Handling image".center(80, "-"))
+        self._benchmark_step("Image Loading", self.read_img, file_path)
+        self._benchmark_step("Unique Colors Extraction", self.extract_unique_colors)
 
+        self.logger.info("Processing completed successfully.")
+
+    def read_img(self, file_path: str):
+        """Read an image file and store it as a NumPy array."""
+        try:
+            image = iio.imread(file_path)  # Load image as NumPy array
+            if image.shape[-1] != 4:
+                raise ValueError("Expected an RGBA image (4 channels).")
+
+            self.pixels = image.astype(np.uint8)  # Ensure uint8 type (0-255)
+        except Exception as e:
+            self.logger.error(f"Failed to load image: {e}")
+            self.pixels = None
+
+    def extract_unique_colors(self):
+        """Extract unique RGBA colors from the image."""
+        if self.pixels is None:
+            self.logger.warning("No image data found. Skipping color extraction.")
+            return
+
+        self.colors = np.unique(self.pixels.reshape(-1, 4), axis=0)
+        self.logger.info(f"Unique colors found: {len(self.colors)}")
+
+    def _benchmark_step(self, step_name: str, func, *args):
+        """Benchmark a specific function and log execution time and memory usage."""
         if self.benchmark:
+            self.logger.info(f"--- {step_name} ---")
             start_time = time.time()
+            start_memory = psutil.Process().memory_info().rss / (1024 * 1024)  # MB
 
-        self.read_img(fp)
-        self.benchmark and print(f'Image read in {time.time() - start_time}s')
+            func(*args)  # Execute function
 
-        if self.benchmark:
-            start_time = time.time()
+            elapsed_time = time.time() - start_time
+            end_memory = psutil.Process().memory_info().rss / (1024 * 1024)  # MB
+            memory_usage = end_memory - start_memory
 
-        self.build_map()
-        self.benchmark and print(f"Color map built in {time.time() - start_time}s")
-
-        if self.benchmark:
-            start_time = time.time()
-
-        self.reduce_color_count()
-        self.benchmark and print(f"Colors reduced in {time.time() - start_time}s")
-
-    def read_img(self, fp):
-        """
-        Read an image and build the corresponding attributes.
-
-        :param fp:
-        :return:
-        """
-        image = open(fp, 'rb') # open file read + binary mode
-        reader = png.Reader(file=image) # load image file content in the reader object
-        width, height, rgba_values, metadata = reader.read_flat() # get treatment useful values from the reader
-        image.close() # close the file
+            self.logger.info(f"{step_name} completed in {elapsed_time:.4f}s | Memory Used: {memory_usage:.2f} MB")
 
 
-        rgba_list = rgba_values.tolist() # flat RGBA values are disposed in a list
-        color_count = int(len(rgba_list) / 4) # color count is the number of items / 4 (R, B, G, A = 4 values)
-
-        # Convert the rgba list to a RGBAColor list
-        color_list = [
-            np.array([rgba_list[4 * i], rgba_list[4 * i + 1], rgba_list[4 * i + 2], rgba_list[4 * i + 3]]) for i in
-            range(color_count)
-        ]
-
-        # store the colors from the image to a list with only unique values
-
-        self.pixels = [color_list[i * width: (i + 1) * width] for i in range(height)] # convert the color list to a matrix in order to display an image
-
-
-    def build_map(self):
-        pass
-
-    def reduce_color_count(self):
-        pass
+# Example Usage
+if __name__ == "__main__":
+    handler = ImageHandler(with_benchmarking=True)
+    handler.handle("example.png")  # Replace with your image file

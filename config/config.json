@@ -1,0 +1,17 @@
+{
+  "logging": {
+    "log_to_file": true,
+    "log_json": false,
+    "use_utc": false,
+    "log_level": "DEBUG",
+    "log_file": "logs/watercolorinator.log",
+    "max_log_size_mb": 1,
+    "backup_logs": 5
+  },
+  "app": {
+    "image_processing": {
+      "default_format": "png",
+      "max_image_size_mb": 10
+    }
+  }
+}
