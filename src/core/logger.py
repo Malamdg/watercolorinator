@@ -3,8 +3,22 @@ import logging.handlers
 import os
 import datetime
 import sys
-from config import config
+from src.core.config import config
 
+# Get log config
+LOG_FILE = config.get("logging.log_file", "logs/watercolorinator.log")
+LOG_LEVEL = config.get("logging.log_level", "DEBUG").upper()
+LOG_TO_FILE = config.get("logging.log_to_file", True)
+MAX_LOG_SIZE_MB = config.get("logging.max_log_size_mb", 1)
+BACKUP_LOGS = config.get("logging.backup_logs", 5)
+
+# Check if the log file path is absolute, else convert it
+if not os.path.isabs(LOG_FILE):
+    LOG_FILE = os.path.join(os.path.dirname(__file__), "../../", LOG_FILE)
+
+# Check logs dir existence
+LOG_DIR = os.path.dirname(LOG_FILE)
+os.makedirs(LOG_DIR, exist_ok=True)
 
 class RFC5424Logger(logging.Logger):
     """Custom logger following RFC 5424 severity levels."""
@@ -101,8 +115,7 @@ class Logger:
         :return: Configured logger instance
         """
         _logger = logging.getLogger(name)
-        log_level = config.get("logging.log_level", "DEBUG").upper()
-        _logger.setLevel(getattr(RFC5424Logger, log_level, logging.DEBUG))
+        _logger.setLevel(getattr(RFC5424Logger, LOG_LEVEL, logging.DEBUG))
 
         if _logger.hasHandlers():
             return _logger
@@ -115,20 +128,19 @@ class Logger:
 
         # Console Handler (CLI logs with colors)
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(getattr(RFC5424Logger, log_level, logging.DEBUG))
+        console_handler.setLevel(getattr(RFC5424Logger, LOG_LEVEL, logging.DEBUG))
         console_handler.setFormatter(console_formatter)
         _logger.addHandler(console_handler)
 
         # File Handler (persistent logs, no colors)
         if log_to_file:
-            os.makedirs(os.path.dirname(config.get("logging.log_file", "logs/watercolorinator.log")), exist_ok=True)
             file_handler = logging.handlers.RotatingFileHandler(
-                config.get("logging.log_file", "logs/watercolorinator.log"),
-                maxBytes=config.get("logging.max_log_size_mb", 1) * 1_000_000,
-                backupCount=config.get("logging.backup_logs", 5),
+                LOG_FILE,
+                maxBytes=MAX_LOG_SIZE_MB * 1_000_000,
+                backupCount=BACKUP_LOGS,
                 encoding="utf-8"
             )
-            file_handler.setLevel(getattr(RFC5424Logger, log_level, logging.DEBUG))
+            file_handler.setLevel(getattr(RFC5424Logger, LOG_LEVEL, logging.DEBUG))
             file_handler.setFormatter(file_formatter)
             _logger.addHandler(file_handler)
 

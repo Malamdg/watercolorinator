@@ -1,0 +1,16 @@
+[project]
+name = "watercolorinator"
+version = "0.1"
+dependencies = [
+    "datetime",
+    "imageio.v3",
+    "json",
+    "logging",
+    "logging.handlers",
+    "matplotlib.pyplot",
+    "numpy",
+    "os",
+    "psutil",
+    "sys",
+    "time",
+]
