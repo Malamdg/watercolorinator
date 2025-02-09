@@ -1,6 +1,6 @@
-from src.core.logger import Logger
-from src.image_handler import ImageHandler
 from src.color_viewer import visualize_colors
+from src.core.logger import Logger
+from src.image_processing.image_handler import ImageHandler
 
 def initialize():
     """App initialization"""

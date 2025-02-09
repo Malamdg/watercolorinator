@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-from image_handler import ImageHandler
 from core.logger import Logger
 
 # Initialize logger

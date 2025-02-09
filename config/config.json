@@ -12,6 +12,14 @@
     "image_processing": {
       "default_format": "png",
       "max_image_size_mb": 10
+    },
+    "color_reduction": {
+      "strategy": "kmeans",
+      "strategies": {
+        "kmeans": {
+          "k": 16
+        }
+      }
     }
   }
 }

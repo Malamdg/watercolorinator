@@ -2,7 +2,10 @@ import numpy as np
 import png
 import os
 import time
-from core.logger import Logger
+
+from src.color_viewer import visualize_colors
+from src.core.logger import Logger
+from src.image_processing.color_reduction import ColorReducer
 
 # Initialize logger
 logger = Logger.get_logger(__name__)
@@ -23,6 +26,7 @@ class ImageHandler:
         self.color_map = {}  # Stores color (RGBA) to pixel coordinates
         self.colors = np.array([])  # List of unique colors in the image
         self.pixels = np.array([])  # Pixel matrix of the image
+        self.reducer = ColorReducer()
 
     def handle(self, file_path):
         """
@@ -100,5 +104,4 @@ class ImageHandler:
         """
         Reduce the number of colors in the image (simple implementation for now).
         """
-        # TODO: Implement an intelligent color reduction algorithm
-        pass
+        self.colors, color_map = self.reducer.reduce(self.colors)
