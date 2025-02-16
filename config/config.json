@@ -14,10 +14,14 @@
       "max_image_size_mb": 10
     },
     "color_reduction": {
-      "strategy": "kmeans_alpha",
+      "strategy": "auto_adaptive",
       "strategies": {
-        "kmeans": {
+        "alpha_kmeans": {
           "k": 100
+        },
+        "luminance_kmeans": {
+          "k_luminance": 10,
+          "k_color": 3
         }
       }
     }

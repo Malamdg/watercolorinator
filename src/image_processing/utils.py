@@ -55,3 +55,12 @@ def get_color_matrix(fp: str):
     width, height, rgba_values, metadata = read_image(fp)
     color_array = get_color_array(rgba_values)
     return array_to_matrix(color_array, height, width)
+
+def compute_luminance(rgb_values):
+    """
+    Compute luminance based on human perception.
+
+    :param rgb_values: Numpy array of shape (N, 3) containing RGB values.
+    :return: Numpy array of shape (N, 1) with luminance values.
+    """
+    return 0.2126 * rgb_values[:, 0] + 0.7152 * rgb_values[:, 1] + 0.0722 * rgb_values[:, 2]
