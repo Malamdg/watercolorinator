@@ -20,7 +20,7 @@ class ColorReductionStrategy:
         """
         raise NotImplementedError("Color reduction strategy must implement the `reduce` method.")
 
-class KMeansColorReducerAlphaLayering(ColorReductionStrategy):
+class AlphaLayeringKMeansColorReducer(ColorReductionStrategy):
     """
     Color reducer using K-Means clustering in 3D (RGB), applied per alpha layer.
     """
@@ -86,7 +86,7 @@ class ColorReducer:
 
         if strategy_name == "kmeans_alpha":
             k = config.get(f"app.color_reduction.strategies.{strategy_name}.k", 16)
-            self.strategy = KMeansColorReducerAlphaLayering(k)
+            self.strategy = AlphaLayeringKMeansColorReducer(k)
         else:
             raise ValueError(f"Unknown color reduction strategy: {strategy_name}")
 
