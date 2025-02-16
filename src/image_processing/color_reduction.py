@@ -20,7 +20,7 @@ class ColorReductionStrategy:
         """
         raise NotImplementedError("Color reduction strategy must implement the `reduce` method.")
 
-class KMeansColorReducer(ColorReductionStrategy):
+class KMeansColorReducerAlphaLayering(ColorReductionStrategy):
     """
     Color reducer using K-Means clustering in 3D (RGB), applied per alpha layer.
     """
@@ -48,26 +48,28 @@ class KMeansColorReducer(ColorReductionStrategy):
 
         for alpha in unique_alphas:
             mask = (colors[:, 3] == alpha)
-            rgb_values = colors[mask, :3]  # Extract RGB values for this alpha layer
+            rgba_values = colors[mask]  # Extract full RGBA values for this alpha layer
 
-            if len(rgb_values) == 0:
+            if len(rgba_values) == 0:
                 continue  # Skip empty layers
 
-            logger.info(f"Applying K-Means on alpha={alpha} layer with {len(rgb_values)} colors.")
+            logger.info(f"Applying K-Means on alpha={alpha} layer with {len(rgba_values)} colors.")
 
-            # Apply K-Means clustering on RGB values
-            kmeans = KMeans(n_clusters=min(self.k, len(rgb_values)), random_state=42, n_init=10)
-            labels = kmeans.fit_predict(rgb_values)
+            # Apply K-Means clustering on RGB values only (not alpha)
+            kmeans = KMeans(n_clusters=min(self.k, len(rgba_values)), random_state=42, n_init=10)
+            labels = kmeans.fit_predict(rgba_values[:, :3])  # Use only RGB for clustering
             cluster_centers = kmeans.cluster_centers_.astype(np.uint8)
 
-            # Build the color map: original color -> the closest cluster center
-            for original, label in zip(rgb_values, labels):
+            # Append the alpha channel back to cluster centers
+            cluster_centers = np.hstack((cluster_centers, np.full((cluster_centers.shape[0], 1), alpha, dtype=np.uint8)))
+
+            # Build the color map: original color -> closest cluster center (preserving alpha)
+            for original, label in zip(rgba_values, labels):
                 cluster_color = tuple(cluster_centers[label])
                 color_map[tuple(original)] = cluster_color  # Mapping original -> reduced color
 
             # Store reduced colors with alpha
-            for cluster_color in cluster_centers:
-                reduced_colors.append((*cluster_color, alpha))
+            reduced_colors.extend(cluster_centers)
 
         return np.array(reduced_colors, dtype=np.uint8), color_map
 
@@ -82,9 +84,9 @@ class ColorReducer:
         """
         strategy_name = config.get("app.color_reduction.strategy", "kmeans")
 
-        if strategy_name == "kmeans":
+        if strategy_name == "kmeans_alpha":
             k = config.get(f"app.color_reduction.strategies.{strategy_name}.k", 16)
-            self.strategy = KMeansColorReducer(k)
+            self.strategy = KMeansColorReducerAlphaLayering(k)
         else:
             raise ValueError(f"Unknown color reduction strategy: {strategy_name}")
 
@@ -95,6 +97,6 @@ class ColorReducer:
         Apply the configured reduction strategy.
 
         :param colors: Numpy array of shape (N, 4) containing RGBA values.
-        :return: Tuple (reduced_colors, color_map)
+        :return: Tuple (reduced_colors, color_reduction_map)
         """
         return self.strategy.reduce(colors)

@@ -1,11 +1,12 @@
+from collections import defaultdict
+
 import numpy as np
-import png
 import os
 import time
 
-from src.color_viewer import visualize_colors
 from src.core.logger import Logger
 from src.image_processing.color_reduction import ColorReducer
+from src.image_processing.utils import read_image, get_color_array, array_to_matrix
 
 # Initialize logger
 logger = Logger.get_logger(__name__)
@@ -63,21 +64,11 @@ class ImageHandler:
         :param file_path: Path to the image file.
         """
         try:
-            with open(file_path, 'rb') as img_file:
-                reader = png.Reader(file=img_file)
-                width, height, rgba_values, metadata = reader.read_flat()
-
-            rgba_list = rgba_values.tolist()
-            color_count = len(rgba_list) // 4  # 4 values per pixel (RGBA)
-
-            # Convert list to an array of RGBA colors
-            color_array = np.array([
-                [rgba_list[4 * i], rgba_list[4 * i + 1], rgba_list[4 * i + 2], rgba_list[4 * i + 3]]
-                for i in range(color_count)
-            ])
+            width, height, rgba_values, metadata = read_image(file_path)
+            color_array = get_color_array(rgba_values)
 
             # Store the pixels as a matrix (height x width)
-            self.pixels = color_array.reshape((height, width, 4))
+            self.pixels = array_to_matrix(color_array, height, width)
             self.colors = np.unique(self.pixels.reshape(-1, self.pixels.shape[-1]), axis=0)  # Unique colors
 
             logger.debug(f"Image {file_path} read with dimensions {width}x{height}.")
@@ -102,6 +93,21 @@ class ImageHandler:
 
     def reduce_color_count(self):
         """
-        Reduce the number of colors in the image (simple implementation for now).
+        Reduce the number of colors in the image and update the color map.
         """
-        self.colors, color_map = self.reducer.reduce(self.colors)
+        self.colors, color_reduction_map = self.reducer.reduce(self.colors)
+
+        reduced_color_map = defaultdict(list)
+
+        # Apply color reduction on the color map
+        for original_color, reduced_color in color_reduction_map.items():
+            if original_color in self.color_map:  # Ensure the original color exists
+                reduced_color_map[tuple(reduced_color)].extend(self.color_map[original_color])
+
+        self.color_map = dict(reduced_color_map)
+        # Apply reduced colors efficiently using `color_map`
+        for reduced_color, pixel_positions in self.color_map.items():
+            for x, y in pixel_positions:
+                self.pixels[y, x] = reduced_color  # Direct assignment
+
+        logger.debug("Colors reduced successfully.")

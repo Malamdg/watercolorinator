@@ -35,7 +35,7 @@ It helps artists **simulate color blends**, **convert images into watercolor sty
     ```
 3. Run the color extraction and visualization module:
     ```sh
-    python src/color_viewer.py
+    python src/viewer.py
     ```
 4. (WIP) Convert an image into a watercolor simulation:
     ```sh
